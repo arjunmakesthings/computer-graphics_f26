@@ -1,0 +1,51 @@
+<!-- from class:  -->
+
+<body bgcolor="black">
+  <canvas id="canvas" width="800" height="800"></canvas>
+  <script src="./assets/webgl.js"></script>
+  <script>
+    function Scene() {
+      this.vertex_shader = `#version 300 es
+         in  vec3 a_pos;
+         out vec3 v_pos;
+         void main() {
+            gl_Position = vec4(a_pos, 1.);
+            v_pos = a_pos;
+         }`;
+
+      this.fragment_shader = `#version 300 es
+         precision highp float;
+         in  vec3 v_pos;
+         out vec4 frag_col;
+
+         uniform float u_time; 
+         void main() {
+           float d = sqrt(1. - dot(v_pos, v_pos));
+           float r = 0.0;
+           float g = 0.0;
+           float b = 0.0;
+
+           float rad = sin (mod(u_time, 3.1));
+
+           if (d>rad){
+           r = d;
+           }
+           else{
+           r = 1.0;
+           g = 1.0;
+           b = 1.0;
+           }
+           frag_col = vec4(r, g,b,1.0);
+         }`;
+
+      let start_time = Date.now() / 1000;
+
+      this.update = () => {
+        let t = Date.now() / 1000 - start_time;
+        //   console.log(t % 1);
+        set_uniform("1f", "u_time", t);
+      };
+    }
+    gl_start(canvas, new Scene());
+  </script>
+</body>

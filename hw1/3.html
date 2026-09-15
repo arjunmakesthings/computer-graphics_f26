@@ -1,0 +1,65 @@
+<!-- moving lights in canvas:  -->
+
+<body bgcolor="black">
+  <canvas id="canvas" width="800" height="800"></canvas>
+  <script src="./assets/webgl.js"></script>
+  <script>
+    function Scene() {
+      this.vertex_shader = `#version 300 es
+         in  vec3 a_pos;
+         out vec3 v_pos;
+         void main() {
+            gl_Position = vec4(a_pos, 1.);
+            v_pos = a_pos;
+         }`;
+
+      this.fragment_shader = `#version 300 es
+         precision highp float;
+         in  vec3 v_pos;
+         out vec4 frag_col;
+
+         uniform float u_time; 
+         void main() {
+           vec3 pos = v_pos;
+          //  float t = 0.;
+          float t = u_time * 0.5;
+
+           //lissajous: 
+           float d = 0.45; 
+           vec3 r_pos = vec3(cos(t) * d, sin(t) * d, 0.0); 
+           vec3 g_pos = vec3(cos(t - 1.) * d, sin(t + 1.) * d, 0.0);
+           vec3 b_pos = vec3(cos(t + 1.) * d, sin(t - 1.) * d, 0.0); 
+
+           float upper = 0.001; 
+
+           float r = max(upper, dot(pos, r_pos));  
+           float g = max(upper, dot(pos, g_pos));  
+           float b = max(upper, dot(pos, b_pos));  
+
+          //  float circ_d = 1. - sqrt(dot(pos, pos)); 
+          float circ_d = sqrt(1. - dot(pos, pos))* 2.0; 
+
+          float rad = circ_d * mix(2.0, 4.0, sin(t));
+          float rad2 = circ_d * mix(4.0, 8.0, sin(t -1.0));
+          float rad3 = circ_d * mix(4.0, 8.0, sin(t + 1.0)); 
+
+          vec3 col = vec3(
+          smoothstep(0.8, 2.0, (r * rad)), 
+          g * rad, 
+          0.0); 
+
+          //  frag_col = vec4(r * rad, g * rad2, b * rad3, 1.0); 
+          frag_col = vec4(col, 1.0); 
+         }`;
+
+      let start_time = Date.now() / 1000;
+
+      this.update = () => {
+        let t = Date.now() / 1000 - start_time;
+        //   console.log(t % 1);
+        set_uniform("1f", "u_time", t);
+      };
+    }
+    gl_start(canvas, new Scene());
+  </script>
+</body>

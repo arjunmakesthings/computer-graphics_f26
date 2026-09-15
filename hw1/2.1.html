@@ -1,4 +1,4 @@
-<!-- circle with light:  -->
+<!-- whole canvas with just light:  -->
 
 <body bgcolor="black">
   <canvas id="canvas" width="800" height="800"></canvas>
@@ -28,12 +28,8 @@
            vec3 light_anchor = vec3(sin(u_time), 1.0, 0.0); 
 
            if (d>rad){
-           //ken's:
-          //  float r = .1 + .4 * max(0.0, dot(pos,light_anchor));
-
-            //i use this: 
-            float r = .1 + .4 * dot(pos,light_anchor); 
-            frag_col = vec4(vec3(r),1.0);  
+            float r = .2 + .4 * dot(light_anchor,pos); 
+            frag_col = vec4(r, 0.0, 0.0,1.0);  
            }
          }`;
 

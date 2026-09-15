@@ -1,0 +1,33 @@
+<!-- bouncing ball:  -->
+
+<body bgcolor="black">
+  <canvas id="canvas" width="800" height="800"></canvas>
+  <script src="./assets/webgl.js"></script>
+  <script>
+    async function main() {
+      const frag = await fetch("./2.frag").then((res) => res.text());
+      function Scene() {
+        this.vertex_shader = `#version 300 es
+         in  vec3 a_pos;
+         out vec3 v_pos;
+         void main() {
+            gl_Position = vec4(a_pos, 1.);
+            v_pos = a_pos;
+         }`;
+
+        this.fragment_shader = frag;
+
+        let start_time = Date.now() / 1000;
+
+        this.update = () => {
+          let t = Date.now() / 1000 - start_time;
+          //   console.log(t % 1);
+          set_uniform("1f", "u_time", t);
+        };
+      }
+      gl_start(canvas, new Scene());
+    }
+
+    main();
+  </script>
+</body>

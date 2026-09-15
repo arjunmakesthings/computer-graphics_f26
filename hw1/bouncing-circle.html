@@ -1,4 +1,4 @@
-<!-- circle with light:  -->
+<!-- from class:  -->
 
 <body bgcolor="black">
   <canvas id="canvas" width="800" height="800"></canvas>
@@ -21,20 +21,21 @@
          uniform float u_time; 
          void main() {
            float d = sqrt(1. - dot(v_pos, v_pos));
-           float rad = 0.5; 
-           frag_col = vec4(vec3(1.0), 1.0);
+           float r = 0.0;
+           float g = 0.0;
+           float b = 0.0;
 
-           vec3 pos = v_pos; 
-           vec3 light_anchor = vec3(sin(u_time), 1.0, 0.0); 
+           float rad = sin (mod(u_time, 3.1));
 
            if (d>rad){
-           //ken's:
-          //  float r = .1 + .4 * max(0.0, dot(pos,light_anchor));
-
-            //i use this: 
-            float r = .1 + .4 * dot(pos,light_anchor); 
-            frag_col = vec4(vec3(r),1.0);  
+           r = d;
            }
+           else{
+           r = 1.0;
+           g = 1.0;
+           b = 1.0;
+           }
+           frag_col = vec4(r, g,b,1.0);
          }`;
 
       let start_time = Date.now() / 1000;

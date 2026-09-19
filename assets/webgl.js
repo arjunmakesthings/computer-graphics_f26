@@ -1,4 +1,4 @@
-//boilerplate from ken:
+//boilerplate from ken; modified by me.
 function gl_start(canvas, scene) {
   setTimeout(function () {
     window.gl = canvas.getContext("webgl2");

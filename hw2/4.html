@@ -4,6 +4,18 @@
   <canvas id="canvas" width="800" height="800"></canvas>
   <script src="../assets/webgl.js"></script>
   <script>
+    //define spheres:
+    let sp = [];
+    const r = 0.05;
+
+    for (let x = -1.0 + r; x < 1.0 - r; x += r * 2.) {
+      for (let y = -1.0 + r; y < 1.0 - r; y += r * 2.) {
+        sp.push(x, y, -3.0, r);
+      }
+    }
+
+    const sp_length = sp.length / 4;
+
     function Scene() {
       this.vertex_shader = `#version 300 es
          in  vec3 a_pos;
@@ -13,14 +25,20 @@
             v_pos = a_pos;
          }`;
 
-      this.fragment_shader = `#version 300 es
+      this.fragment_shader =
+        `#version 300 es
          precision highp float;
          in  vec3 v_pos;
          out vec4 frag_col;
 
          uniform float u_time;
 
-         //focal length: q
+         //take spheres: 
+         uniform vec4 u_spheres[` +
+        sp_length +
+        `];
+
+         //focal length:
 
          float f = 3.; 
 
@@ -51,32 +69,33 @@
           frag_col = vec4(vec3(0.0), 1.0);
 
           //ray from camera to this pixel: 
-
-          vec3 v = vec3(0.0); //cam position. 
+          vec3 v = vec3(0.0, 0.0, 2. - sin(u_time) - f); //cam position. 
           vec3 w = normalize(vec3(v_pos.xy, -f)); 
 
-          float t = ray_to_sphere(v,w,s); 
+          for (int i = 0; i < ` + sp_length + `; i++) {
+            float t = ray_to_sphere(v, w, u_spheres[i]); 
 
-          if (t>=0.){
-            frag_col = vec4(1.0); 
+            if (t >= 0.0){
+              frag_col = vec4(1.0); 
 
-            //find the point on the sphere's surface: 
-            vec3 p = v + t * w; 
+              //find the point on the sphere's surface: 
+              vec3 p = v + t * w; 
 
-            //surface normal: 
-            vec3 n = normalize(p - s.xyz); 
+              //surface normal: 
+              vec3 n = normalize(p - u_spheres[i].xyz); 
 
-            //color of light: 
-            vec3 c = vec3(0.5, 0.0, 0.0); 
+              //color of light: 
+              vec3 c = vec3(atan(u_time) - 2.0, 0.0, 0.0); 
 
-            //light pos: 
-            vec3 l_pos = vec3(sin(u_time), 0.0, cos(u_time)); 
+              //light pos: 
+              vec3 l_pos = vec3(sin(u_time), sin(u_time), cos(u_time)); 
 
-            c+= dot(n, l_pos) * (c * s.w * s.z - 1.); 
+              c+= dot(n, l_pos) * (c * u_spheres[0].w * u_spheres[0].z - 0.6); 
 
-            frag_col = vec4 (sqrt(c), 1.); 
-            // frag_col = vec4 (c, 1.); 
+              // frag_col = vec4 (sqrt(c), 1.); 
+              frag_col = vec4 (c, 1.); 
             }
+          }
          }`;
 
       let start_time = Date.now() / 1000;
@@ -85,9 +104,12 @@
         let t = Date.now() / 1000 - start_time;
         //   console.log(t % 1);
         set_uniform("1f", "u_time", t);
+
+        //sphere manipulation:
+
+        set_uniform("4fv", "u_spheres", sp);
       };
     }
     gl_start(canvas, new Scene());
   </script>
 </body>
-

@@ -1,4 +1,4 @@
-<!-- base raytracing without diffusion:  -->
+<!-- multiple raytracing:  -->
 
 <body bgcolor="black">
   <canvas id="canvas" width="800" height="800"></canvas>
@@ -24,11 +24,10 @@
 
          float f = 3.; 
 
-         vec4 s = vec4(0.0, 0.0, 0.0, 0.75); 
+         vec4 s = vec4(0.0, 0.0, -3.0, 0.75); 
 
          //tracing a ray to a sphere: 
          float ray_to_sphere(vec3 v, vec3 w, vec4 s){
-          s.z-=f; //correct so that i don't have to send a negative value for sphere's z (to account for camera v).
           v -= s.xyz; //position of camera relative to sphere. 
           float r = s.w; 
 
@@ -60,6 +59,23 @@
 
           if (t>=0.){
             frag_col = vec4(1.0); 
+
+            //find the point on the sphere's surface: 
+            vec3 p = v + t * w; 
+
+            //surface normal: 
+            vec3 n = normalize(p - s.xyz); 
+
+            //color of light: 
+            vec3 c = vec3(0.5, 0.0, 0.0); 
+
+            //light pos: 
+            vec3 l_pos = vec3(sin(u_time), 0.0, cos(u_time)); 
+
+            c+= dot(n, l_pos) * (c * s.w * s.z - 1.); 
+
+            frag_col = vec4 (sqrt(c), 1.); 
+            // frag_col = vec4 (c, 1.); 
             }
          }`;
 

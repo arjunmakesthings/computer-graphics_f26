@@ -9,6 +9,12 @@
       return out_lo + ((v - in_lo) / (in_hi - in_lo)) * (out_hi - out_lo);
     };
 
+    //helper to normalize a 3d vector:
+    let normalize = (v) => {
+      let s = Math.sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
+      return [v[0] / s, v[1] / s, v[2] / s];
+    };
+
     let spheres = [];
 
     // const cols = 3;
@@ -22,8 +28,7 @@
     //   }
     // }
 
-    const ring_r = 0.6;
-    const r = 0.15;
+    const ring_r = 0.5; 
     const count = 10;
 
     for (let i = 0; i < count; i++) {
@@ -36,7 +41,7 @@
     const num_spheres = spheres.length / 4;
     const num_lights = 2;
 
-    //surface color of each sphere (r, g, b), one entry per sphere:
+    //diffuse color of each sphere:
     let colors = [];
     for (let i = 0; i < num_spheres; i++) {
       let a = (2 * Math.PI * i) / num_spheres;
@@ -47,8 +52,16 @@
       );
     }
 
-    //light positions (x, y, z), one entry per light:
-    let lights = [-1, 1, 0, 1, -1, -2];
+    //ambient and specular for each sphere:
+    let ambients = [];
+    let speculars = [];
+    for (let i = 0; i < num_spheres; i++) {
+      ambients.push(0.2 * colors[3 * i], 0.2 * colors[3 * i + 1], 0.2 * colors[3 * i + 2]);
+      speculars.push(0.5, 1, 1, 75);
+    }
+
+    //light dirs:
+    let lights = [normalize([-1, 1, 0]), normalize([1, -1, -2])].flat();
 
     //light colors (r, g, b), one entry per light:
     let light_cols = [1, 0.9, 0.8, 0.3, 0.4, 0.6];
@@ -73,10 +86,13 @@
          //every sphere: xyz = center, w = radius.
          uniform vec4 u_spheres[${num_spheres}];
 
-         //surface color of every sphere:
-         uniform vec3 u_colors[${num_spheres}];
+         //ambient, diffuse (surface) and specular color of every sphere.
+         //specular: rgb = highlight color, a = shininess power.
+         uniform vec3 u_ambients[${num_spheres}];
+         uniform vec3 u_diffuses[${num_spheres}];
+         uniform vec4 u_speculars[${num_spheres}];
 
-         //light positions:
+         //light directions:
          uniform vec3 u_lights[${num_lights}];
 
          //light colors:
@@ -106,95 +122,88 @@
          }
 
          void main() {
-          vec3 pos = v_pos; 
-          frag_col = vec4(vec3(0.0), 1.0);
+          frag_col = vec4(0.);
 
           //ray from camera to this pixel: 
           vec3 v = vec3(0.0); //cam position. 
           vec3 w = normalize(vec3(v_pos.xy, -f)); 
 
-          //find the nearest sphere this ray hits:
-          float t = 1000.;
-          int hit = -1;
+          float t_min = mix(2., 20., (0.5 + 0.5 * sin(u_time)) * 0.25);
           for (int i = 0; i < ${num_spheres}; i++) {
-            float ti = ray_to_sphere(v, w, u_spheres[i]);
-            if (ti >= 0. && ti < t) {
-              t = ti;
-              hit = i;
-            }
-          }
+            float t = ray_to_sphere(v, w, u_spheres[i]);
+            if (t >= 0. && t < t_min) {
+              t_min = t;
 
-          if (hit >= 0){
-            vec4 s = u_spheres[hit];
+              //find the point on the sphere's surface: 
+              vec3 p = v + t * w; 
 
-            //find the point on the sphere's surface: 
-            vec3 p = v + t * w; 
+              //surface normal: 
+              vec3 n = normalize(p - u_spheres[i].xyz); 
 
-            //surface normal: 
-            vec3 n = normalize(p - s.xyz); 
+              //ambient:
+              vec3 c = u_ambients[i];
 
-            vec3 surface = u_colors[hit]; 
-            vec3 ambient = .1 * surface; 
+              //add up the light from every light source:
+              for (int j = 0; j < ${num_lights}; j++) {
 
-            vec3 c = ambient;
+                //direction from point to light: 
+                vec3 l = u_lights[j]; 
 
-            //add up the light from every light source:
-            for (int j = 0; j < ${num_lights}; j++) {
+                //reflect the light direction around the normal:
+                vec3 r = 2. * dot(n, l) * n - l;
 
-              //direction from point to light: 
-              vec3 dir = normalize(u_lights[j] - p); 
+                //lambert's cosine (diffuse) + specular.
+                //specular: how closely the bounce lines up with the direction back to the camera.
+                vec3 cj = .8 * max(0., dot(n, l)) * u_diffuses[i] * u_light_cols[j]
+                        + pow(max(0., dot(-w, r)), u_speculars[i].a) * u_speculars[i].rgb * u_light_cols[j];
 
-              //lambert's cosine:
-              float diffuse = max(0., dot(n,dir));
+                //with shadows: 
 
-              //normal lighting:
-              // c += diffuse * surface * u_light_cols[j];
+                //we throw a ray from this point, and see if it intersects with any other sphere. 
+                vec3 ws = l;
+                vec3 vs = p + .001 * l;
 
-              //with shadows: 
+                for (int k = 0; k < ${num_spheres}; k++)
+                  //if any sphere is in front, this light is blocked:
+                  if (ray_to_sphere(vs, ws, u_spheres[k]) > 0.)
+                    cj = vec3(0.);
 
-              //we throw a ray from this point, and see if it intersects with any other sphere. 
+                c += cj;
+              }
 
-              vec3 start = p + .001 * n; 
+              //reflection per point:
+              vec3 cr = vec3(0.);
 
-              float light_dist = length(u_lights[j] - p); 
+              vec3 wr = w - 2. * dot(n, w) * n; 
+              vec3 vr = p + .001 * wr; 
 
-              bool not_hitting = true;
+              //find the nearest sphere the reflected ray hits:
+              float tr_min = 1000.;
+              for (int k = 0; k < ${num_spheres}; k++) {
+                float tr = ray_to_sphere(vr, wr, u_spheres[k]);
+                if (tr >= 0. && tr < tr_min) {
+                  tr_min = tr;
 
-              for (int k = 0; k<${num_spheres}; k++){
-                float tk = ray_to_sphere(start, dir, u_spheres[k]); 
+                  //if the reflected ray hits a sphere, compute shading for that sphere:
+                  vec3 pr = vr + tr * wr;
+                  vec3 nr = normalize(pr - u_spheres[k].xyz);
 
-                //if the sphere is in front, and before the light position:
-                if (tk > 0. && tk < light_dist){
-                  not_hitting = false; 
+                  cr = u_ambients[k];
+                  for (int j = 0; j < ${num_lights}; j++) {
+                    vec3 l = u_lights[j];
+                    vec3 r = 2. * dot(nr, l) * nr - l;
+                    cr += .4 * max(0., dot(nr, l)) * u_diffuses[k] * u_light_cols[j]
+                        + pow(max(0., dot(-wr, r)), u_speculars[k].a) * u_speculars[k].rgb * u_light_cols[j];
+                  }
                 }
               }
 
-              //if light from point p is not h
-              if (not_hitting){
+              c += .25 * cr;
 
-                //flat lighting:
-                // c += diffuse * surface * u_light_cols[j]; 
-
-                //with specular:
-                //reflect the light direction around the normal:
-                vec3 r = 2. * dot(n, dir) * n - dir;
-
-                //how closely the bounce lines up with the direction back to the camera:
-                float spec = pow(max(0., dot(-w, r)), 30.);
-
-                c += diffuse * surface * u_light_cols[j] + spec * u_light_cols[j];
-
-                //reflection:
-                
-              }
+              //gamma correction:
+              frag_col = vec4(sqrt(c), 1.); 
             }
-
-            //specular:
-
-            
-
-            frag_col = vec4(sqrt(c), 1.); 
-            }
+          }
          }`;
 
       let start_time = Date.now() / 1000;
@@ -217,7 +226,9 @@
 
         //send the arrays to the shader:
         set_uniform("4fv", "u_spheres", spheres);
-        set_uniform("3fv", "u_colors", colors);
+        set_uniform("3fv", "u_ambients", ambients);
+        set_uniform("3fv", "u_diffuses", colors);
+        set_uniform("4fv", "u_speculars", speculars);
         set_uniform("3fv", "u_lights", lights);
         set_uniform("3fv", "u_light_cols", light_cols);
       };

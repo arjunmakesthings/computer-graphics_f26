@@ -140,10 +140,10 @@
             for (int j = 0; j < ${num_lights}; j++) {
 
               //direction from point to light: 
-              vec3 d = normalize(u_lights[j] - p); 
+              vec3 dir = normalize(u_lights[j] - p); 
 
               //lambert's cosine:
-              float diffuse = max(0., dot(n,d));
+              float diffuse = max(0., dot(n,dir));
 
               //normal lighting:
               // c += diffuse * surface * u_light_cols[j];
@@ -156,21 +156,21 @@
 
               float light_dist = length(u_lights[j] - p); 
 
-              bool blocked = false;
+              bool not_hitting = true;
 
               for (int k = 0; k<${num_spheres}; k++){
-                float tk = ray_to_sphere(start, d, u_spheres[k]); 
+                float tk = ray_to_sphere(start, dir, u_spheres[k]); 
 
+                //if the sphere is in front, and before the light position:
                 if (tk > 0. && tk < light_dist){
-                  blocked = true; 
+                  not_hitting = false; 
                 }
               }
 
-              if (!blocked){
+              //if light from point p is not h
+              if (not_hitting){
                 c += diffuse * surface * u_light_cols[j]; 
               }
-
-
             }
 
             frag_col = vec4(sqrt(c), 1.); 
@@ -187,11 +187,12 @@
         //rebuild for animation:
         spheres = [];
         for (let i = 0; i < count; i++) {
+          let d = i * 0.08;
           let a = map(i, 0, count, 0, 2 * Math.PI);
           let spin = a + t;
           let x = ring_r * Math.cos(a);
-          let y = ring_r * Math.sin(spin);
-          spheres.push(x, y, -3.0, a*0.1);
+          let y = ring_r * Math.sin(a - t);
+          spheres.push(x, y, map(Math.sin(a + d), -1, 1, -6.0, -2.0), d);
         }
 
         //send the arrays to the shader:

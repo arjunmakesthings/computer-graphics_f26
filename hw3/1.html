@@ -90,6 +90,9 @@
 
             vec3 spec = pow(max(0., dot(-w, reflected_light)), shininess) * spec_col; 
 
+            //if you don't take max, you get negative (powers turn negatives positive): 
+            // vec3 spec = pow(dot(-w, reflected_light), shininess) * spec_col; 
+
             c+=spec; 
 
             frag_col = vec4(sqrt(c), 1.); 

@@ -72,15 +72,17 @@
 
          //every sphere: xyz = center, w = radius.
          uniform vec4 u_spheres[${num_spheres}];
+
          //surface color of every sphere:
          uniform vec3 u_colors[${num_spheres}];
 
-         //every light: position and color.
+         //light positions:
          uniform vec3 u_lights[${num_lights}];
+
+         //light colors:
          uniform vec3 u_light_cols[${num_lights}];
 
-         //focal length: q
-
+         //focal length:
          float f = 3.; 
 
          //tracing a ray to a sphere: 
@@ -169,9 +171,27 @@
 
               //if light from point p is not h
               if (not_hitting){
-                c += diffuse * surface * u_light_cols[j]; 
+
+                //flat lighting:
+                // c += diffuse * surface * u_light_cols[j]; 
+
+                //with specular:
+                //reflect the light direction around the normal:
+                vec3 r = 2. * dot(n, dir) * n - dir;
+
+                //how closely the bounce lines up with the direction back to the camera:
+                float spec = pow(max(0., dot(-w, r)), 30.);
+
+                c += diffuse * surface * u_light_cols[j] + spec * u_light_cols[j];
+
+                //reflection:
+                
               }
             }
+
+            //specular:
+
+            
 
             frag_col = vec4(sqrt(c), 1.); 
             }

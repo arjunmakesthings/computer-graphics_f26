@@ -1,0 +1,206 @@
+<!-- base raytracing, shadows & reflections on many objects & many light sources:  -->
+
+<body bgcolor="black">
+  <canvas id="canvas" width="800" height="800"></canvas>
+  <script src="../assets/webgl.js"></script>
+  <script>
+    //helper to map:
+    let map = (v, in_lo, in_hi, out_lo, out_hi) => {
+      return out_lo + ((v - in_lo) / (in_hi - in_lo)) * (out_hi - out_lo);
+    };
+
+    let spheres = [];
+
+    // const cols = 3;
+    // const rows = 3;
+    // const r = 0.15;
+    // for (let i = 0; i < cols; i++) {
+    //   for (let j = 0; j < rows; j++) {
+    //     let x = map(i, 0, cols - 1, -1 + rad, 1 - rad);
+    //     let y = map(j, 0, rows - 1, -1 + rad, 1 - rad);
+    //     spheres.push(x, y, -3, rad);
+    //   }
+    // }
+
+    const ring_r = 0.6;
+    const r = 0.15;
+    const count = 10;
+
+    for (let i = 0; i < count; i++) {
+      let a = map(i, 0, count, 0, 2 * Math.PI);
+      let x = ring_r * Math.cos(a);
+      let y = ring_r * Math.sin(a);
+      spheres.push(x, y, -3.0, a * 0.06);
+    }
+
+    const num_spheres = spheres.length / 4;
+    const num_lights = 2;
+
+    //surface color of each sphere (r, g, b), one entry per sphere:
+    let colors = [];
+    for (let i = 0; i < num_spheres; i++) {
+      let a = (2 * Math.PI * i) / num_spheres;
+      colors.push(
+        0.5 + 0.5 * Math.cos(a),
+        0.5 + 0.5 * Math.cos(a + 2.1),
+        0.5 + 0.5 * Math.cos(a + 4.2),
+      );
+    }
+
+    //light positions (x, y, z), one entry per light:
+    let lights = [-1, 1, 0, 1, -1, -2];
+
+    //light colors (r, g, b), one entry per light:
+    let light_cols = [1, 0.9, 0.8, 0.3, 0.4, 0.6];
+
+    function Scene() {
+      this.vertex_shader = `#version 300 es
+         in  vec3 a_pos;
+         out vec3 v_pos;
+         void main() {
+            gl_Position = vec4(a_pos, 1.);
+            v_pos = a_pos;
+         }`;
+
+      //note: the \${...} values below are filled in by javascript before compiling.
+      this.fragment_shader = `#version 300 es
+         precision highp float;
+         in  vec3 v_pos;
+         out vec4 frag_col;
+
+         uniform float u_time;
+
+         //every sphere: xyz = center, w = radius.
+         uniform vec4 u_spheres[${num_spheres}];
+         //surface color of every sphere:
+         uniform vec3 u_colors[${num_spheres}];
+
+         //every light: position and color.
+         uniform vec3 u_lights[${num_lights}];
+         uniform vec3 u_light_cols[${num_lights}];
+
+         //focal length: q
+
+         float f = 3.; 
+
+         //tracing a ray to a sphere: 
+         float ray_to_sphere(vec3 v, vec3 w, vec4 s){
+          v -= s.xyz; //position of camera relative to sphere. 
+          float r = s.w; 
+
+          //need dot products for the equation (W•W) t2 + 2 (W•V) t + (V•V) - r2 = 0. 
+          //w is a unit length vector. 
+          float vw = dot(v,w); 
+          float vv = dot(v,v); //length of itself. 
+          
+          float d = vw * vw - (vv - r*r); 
+
+          if (d < 0.){
+            return -1.0;
+          }else{
+            //hit the circle. :
+            return -vw - sqrt(d);
+          }
+         }
+
+         void main() {
+          vec3 pos = v_pos; 
+          frag_col = vec4(vec3(0.0), 1.0);
+
+          //ray from camera to this pixel: 
+          vec3 v = vec3(0.0); //cam position. 
+          vec3 w = normalize(vec3(v_pos.xy, -f)); 
+
+          //find the nearest sphere this ray hits:
+          float t = 1000.;
+          int hit = -1;
+          for (int i = 0; i < ${num_spheres}; i++) {
+            float ti = ray_to_sphere(v, w, u_spheres[i]);
+            if (ti >= 0. && ti < t) {
+              t = ti;
+              hit = i;
+            }
+          }
+
+          if (hit >= 0){
+            vec4 s = u_spheres[hit];
+
+            //find the point on the sphere's surface: 
+            vec3 p = v + t * w; 
+
+            //surface normal: 
+            vec3 n = normalize(p - s.xyz); 
+
+            vec3 surface = u_colors[hit]; 
+            vec3 ambient = .1 * surface; 
+
+            vec3 c = ambient;
+
+            //add up the light from every light source:
+            for (int j = 0; j < ${num_lights}; j++) {
+
+              //direction from point to light: 
+              vec3 d = normalize(u_lights[j] - p); 
+
+              //lambert's cosine:
+              float diffuse = max(0., dot(n,d));
+
+              //normal lighting:
+              // c += diffuse * surface * u_light_cols[j];
+
+              //with shadows: 
+
+              //we throw a ray from this point, and see if it intersects with any other sphere. 
+
+              vec3 start = p + .001 * n; 
+
+              float light_dist = length(u_lights[j] - p); 
+
+              bool blocked = false;
+
+              for (int k = 0; k<${num_spheres}; k++){
+                float tk = ray_to_sphere(start, d, u_spheres[k]); 
+
+                if (tk > 0. && tk < light_dist){
+                  blocked = true; 
+                }
+              }
+
+              if (!blocked){
+                c += diffuse * surface * u_light_cols[j]; 
+              }
+
+
+            }
+
+            frag_col = vec4(sqrt(c), 1.); 
+            }
+         }`;
+
+      let start_time = Date.now() / 1000;
+
+      this.update = () => {
+        let t = Date.now() / 1000 - start_time;
+        //   console.log(t % 1);
+        set_uniform("1f", "u_time", t);
+
+        //rebuild for animation:
+        spheres = [];
+        for (let i = 0; i < count; i++) {
+          let a = map(i, 0, count, 0, 2 * Math.PI);
+          let spin = a + t;
+          let x = ring_r * Math.cos(a);
+          let y = ring_r * Math.sin(spin);
+          spheres.push(x, y, -3.0, a*0.1);
+        }
+
+        //send the arrays to the shader:
+        set_uniform("4fv", "u_spheres", spheres);
+        set_uniform("3fv", "u_colors", colors);
+        set_uniform("3fv", "u_lights", lights);
+        set_uniform("3fv", "u_light_cols", light_cols);
+      };
+    }
+    gl_start(canvas, new Scene());
+  </script>
+</body>

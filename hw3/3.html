@@ -1,0 +1,97 @@
+<!-- base cube:  -->
+
+<body bgcolor="black">
+  <canvas id="canvas" width="800" height="800"></canvas>
+  <script src="../assets/webgl.js"></script>
+  <script>
+    function Scene() {
+      this.vertex_shader = `#version 300 es
+         in  vec3 a_pos;
+         out vec3 v_pos;
+         void main() {
+            gl_Position = vec4(a_pos, 1.);
+            v_pos = a_pos;
+         }`;
+
+      this.fragment_shader = `#version 300 es
+         precision highp float;
+         in  vec3 v_pos;
+         out vec4 frag_col;
+
+         uniform float u_time;
+
+         //focal length: q
+
+         float f = 3.; 
+
+         vec4 s = vec4(0.0, 0.0, -3.0, 0.75); 
+
+         //tracing a ray to a sphere: 
+         float ray_to_sphere(vec3 v, vec3 w, vec4 s){
+          v -= s.xyz; //position of camera relative to sphere. 
+          float r = s.w; 
+
+          //need dot products for the equation (W•W) t2 + 2 (W•V) t + (V•V) - r2 = 0. 
+          //w is a unit length vector. 
+          float vw = dot(v,w); 
+          float vv = dot(v,v); //length of itself. 
+          
+          float d = vw * vw - (vv - r*r); 
+
+          if (d < 0.){
+            return -1.0;
+          }else{
+            //hit the circle. :
+            return -vw - sqrt(d);
+          }
+         }
+
+         float ray_to_half_space(vec4 v, vec4 w, vec4 sp){
+          //ax + by + cz + d < 0. 
+          
+          return (-dot(v, sp) / dot(w,sp));  
+         }
+
+         void main() {
+          vec4 pos = vec4(v_pos, 1.0); 
+          frag_col = vec4(vec3(0.0), 1.0);
+
+          //ray from camera to this pixel: 
+          vec4 v = vec4(0.0, 0.0, 0.0, 1.0); //cam position. 
+          vec4 w = vec4(normalize(vec3(v_pos.xy, -f)), 0.0); 
+          vec4 sp = vec4(0.0,1.0, 0.0, .5); 
+
+          // float t = ray_to_sphere(v,w,s);
+
+          float t = ray_to_half_space(v,w,sp); 
+
+          if (t >= 0.) {
+            vec3 p = v.xyz + t * w.xyz; //ray on the surface:
+            vec3 n = -normalize(sp.xyz);
+
+            vec3 light_pos = vec3(0.5, -1.0, 0.0);
+            vec3 d = normalize(light_pos - p);
+
+            vec3 surface = vec3(1., 0., 0.);
+            vec3 ambient = .1 * surface;
+
+            float diffuse = max(0., dot(n, d));
+
+            vec3 c = ambient + diffuse * surface;
+
+            frag_col = vec4(sqrt(c), 1.);
+            // frag_col = vec4(vec3(c), 1.0);
+          }
+         }`;
+
+      let start_time = Date.now() / 1000;
+
+      this.update = () => {
+        let t = Date.now() / 1000 - start_time;
+        //   console.log(t % 1);
+        set_uniform("1f", "u_time", t);
+      };
+    }
+    gl_start(canvas, new Scene());
+  </script>
+</body>

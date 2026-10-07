@@ -1,0 +1,34 @@
+<!-- define sphere as matrix:  -->
+
+<body bgcolor="black">
+  <canvas id="canvas" width="800" height="800"></canvas>
+
+  <!-- scripts: -->
+  <script src="../../assets/webgl.js"></script>
+  <script src="../../assets/update-func.js"></script>
+
+  <!-- webgl: -->
+  <script>
+    function Scene(vs, fs) {
+      this.vertex_shader = vs;
+      this.fragment_shader = fs;
+  
+      let start_time = Date.now() / 1000;
+  
+      this.update = () => {
+        let t = Date.now() / 1000 - start_time;
+        set_uniform("1f", "u_time", t);
+      };
+    }
+  
+    async function main() {
+      const [vs, fs] = await Promise.all([
+        fetch("./vert.vert").then((r) => r.text()),
+        fetch("./frag.frag").then((r) => r.text()),
+      ]);
+      gl_start(canvas, new Scene(vs, fs));
+    }
+    main();
+  </script>
+
+</body>

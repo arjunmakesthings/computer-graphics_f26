@@ -11,31 +11,10 @@ uniform float u_time;
 //focal length:
 float f = 3.0;
 
-//shape definition:
-//vec4 s = vec4(0.0, 0.0, -3.0, 0.75);
-
 //memory to keep track of what was hit:
 int hit_piece = 0; 
 
-//tracing a ray to a sphere: 
-float ray_to_sphere(vec3 v, vec3 w, vec4 s) {
-  v -= s.xyz; //position of camera relative to sphere. 
-  float r = s.w; 
-
-//need dot products for the equation (W•W) t2 + 2 (W•V) t + (V•V) - r2 = 0. 
-//w is a unit length vector. 
-  float vw = dot(v, w);
-  float vv = dot(v, v); //length of itself. 
-
-  float d = vw * vw - (vv - r * r);
-
-  if(d < 0.) {
-    return -1.0;
-  } else {
-    //hit the circle
-    return -vw - sqrt(d);
-  }
-}
+//ray-trace stuff:
 
 //to get coefficients, we need to solve for a, b, c from the matrix we define for the shape. so; helper:
 vec2 ray_quadric(vec3 v, vec3 w, mat4 s) {

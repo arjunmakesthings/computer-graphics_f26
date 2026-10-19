@@ -3,12 +3,16 @@ precision highp float;
 in vec3 v_pos;
 out vec4 frag_col;
 
-//focal length:
-float f = 3.;
-
-vec4 s = vec4(0.0, 0.0, -3.0, 0.75); 
-
+//passed uniforms:
 uniform float u_time;
+
+//frag variables:
+
+//focal length:
+float f = 3.0;
+
+//shape definition:
+vec4 s = vec4(0.0, 0.0, -3.0, 0.75);
 
 //tracing a ray to a sphere: 
 float ray_to_sphere(vec3 v, vec3 w, vec4 s) {
@@ -59,11 +63,11 @@ void main() {
     vec3 ambient = .09 * surface; 
 
     //diffuse using lambert's cosine:
-    float diffuse = max(0., dot(n,d)); 
+    float diffuse = max(0., dot(n, d)); 
 
     //specular:
-    vec3 reflected_light = 2. * dot(n,d) * n - d; 
-    float shininess = 10.0; 
+    vec3 reflected_light = 2. * dot(n, d) * n - d;
+    float shininess = 10.0;
 
     vec3 spec_col = vec3(1.0, 0.4, 1.0);
 
@@ -74,6 +78,29 @@ void main() {
     vec3 c = (ambient + diffuse * surface) + spec; 
 
     //output with gamma correction:
-    frag_col = vec4(sqrt(c), 1.0); 
+    frag_col = vec4(sqrt(c), 1.0);
   }
 }
+
+/*
+shape matrix definitions, by ken: 
+
+Sphere
+
+  xx + yy + zz ≤ 1  ⟶   [ 1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,-1 ]
+Cylindrical tube
+
+  yy + zz ≤ 1  ⟶   [ 0,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,-1 ]        // Tube in X
+  xx + zz ≤ 1  ⟶   [ 1,0,0,0, 0,0,0,0, 0,0,1,0, 0,0,0,-1 ]        // Tube in Y
+  xx + yy ≤ 1  ⟶   [ 1,0,0,0, 0,1,0,0, 0,0,0,0, 0,0,0,-1 ]        // Tube in Z
+Slab
+
+  xx ≤ 1  ⟶   [ 1,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,-1 ]             // Slab in X
+  yy ≤ 1  ⟶   [ 0,0,0,0, 0,1,0,0, 0,0,0,0, 0,0,0,-1 ]             // Slab in Y
+  zz ≤ 1  ⟶   [ 0,0,0,0, 0,0,0,0, 0,0,1,0, 0,0,0,-1 ]             // Slab in Z
+Cone
+
+  -xx + yy + zz ≤ 0  ⟶   [ -1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,0 ]   // Cone in X
+  xx - yy = zz ≤ 0  ⟶   [ 1,0,0,0, 0,-1,0,0, 0,0,1,0, 0,0,0,0 ]   // Cone in Y
+  xx + yy - zz ≤ 0  ⟶   [ 1,0,0,0, 0,1,0,0, 0,0,-1,0, 0,0,0,0 ]   // Cone in Z
+*/

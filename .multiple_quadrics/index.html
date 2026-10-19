@@ -1,0 +1,103 @@
+<!-- base raytracing, shadows & reflections on many quadrics & many light sources:  -->
+
+<body bgcolor="black">
+  <canvas id="canvas" width="800" height="800"></canvas>
+
+  <!-- scripts: -->
+  <script src="../../assets/webgl.js"></script>
+  <script src="../../assets/update-func.js"></script>
+
+  <!-- webgl: -->
+  <script>
+    //helper to map:
+    let map = (v, in_lo, in_hi, out_lo, out_hi) => {
+      return out_lo + ((v - in_lo) / (in_hi - in_lo)) * (out_hi - out_lo);
+    };
+
+    //helper to normalize a 3d vector:
+    let normalize = (v) => {
+      let s = Math.sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
+      return [v[0] / s, v[1] / s, v[2] / s];
+    };
+
+    //helper to make the quadric matrix of a sphere (center x, y, z & radius r).
+    //(x-cx)^2 + (y-cy)^2 + (z-cz)^2 - r^2 <= 0; column-major, like glsl wants it.
+    let sphere_quadric = (cx, cy, cz, r) => [
+      1, 0, 0, -cx,
+      0, 1, 0, -cy,
+      0, 0, 1, -cz,
+      -cx, -cy, -cz, cx * cx + cy * cy + cz * cz - r * r,
+    ];
+
+    const ring_r = 0.5;
+
+    //keep in sync with NUM_QUADRICS & NUM_LIGHTS in frag.frag:
+    const num_quadrics = 10;
+    const num_lights = 2;
+
+    //diffuse color of each object:
+    let colors = [];
+    for (let i = 0; i < num_quadrics; i++) {
+      let a = (2 * Math.PI * i) / num_quadrics;
+      colors.push(
+        0.5 + 0.5 * Math.cos(a),
+        0.5 + 0.5 * Math.cos(a + 2.1),
+        0.5 + 0.5 * Math.cos(a + 4.2),
+      );
+    }
+
+    //ambient and specular for each object:
+    let ambients = [];
+    let speculars = [];
+    for (let i = 0; i < num_quadrics; i++) {
+      ambients.push(0.2 * colors[3 * i], 0.2 * colors[3 * i + 1], 0.2 * colors[3 * i + 2]);
+      speculars.push(0.5, 1, 1, 75);
+    }
+
+    //light dirs:
+    let lights = [normalize([-1, 1, 0]), normalize([1, -1, -2])].flat();
+
+    //light colors (r, g, b), one entry per light:
+    let light_cols = [1, 0.9, 0.8, 0.3, 0.4, 0.6];
+
+    function Scene(vs, fs) {
+      this.vertex_shader = vs;
+      this.fragment_shader = fs;
+
+      let start_time = Date.now() / 1000;
+
+      this.update = () => {
+        let t = Date.now() / 1000 - start_time;
+        set_uniform("1f", "u_time", t);
+
+        //rebuild for animation:
+        let quadrics = [];
+        for (let i = 0; i < num_quadrics; i++) {
+          let d = i * 0.08;
+          let a = map(i, 0, num_quadrics, 0, 2 * Math.PI);
+          let x = ring_r * Math.cos(a);
+          let y = ring_r * Math.sin(a - t);
+          quadrics.push(...sphere_quadric(x, y, map(Math.sin(a + d), -1, 1, -6.0, -2.0), d));
+        }
+
+        //send the arrays to the shader:
+        set_uniform("Matrix4fv", "u_quadrics", false, quadrics);
+        set_uniform("3fv", "u_ambients", ambients);
+        set_uniform("3fv", "u_diffuses", colors);
+        set_uniform("4fv", "u_speculars", speculars);
+        set_uniform("3fv", "u_lights", lights);
+        set_uniform("3fv", "u_light_cols", light_cols);
+      };
+    }
+
+    async function main() {
+      const [vs, fs] = await Promise.all([
+        fetch("./vert.vert").then((r) => r.text()),
+        fetch("./frag.frag").then((r) => r.text()),
+      ]);
+      gl_start(canvas, new Scene(vs, fs));
+    }
+    main();
+  </script>
+
+</body>

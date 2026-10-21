@@ -17,9 +17,9 @@ int hit_piece = 0;
 //matrix-functions; from ken.
 //column; not row.
 //so each group of 4 numbers below is one column, not one row.
-mat4 identity() {
-  return mat4(1.0);
-}
+//mat4 identity() {
+//  return mat4(1.0);
+//}
 mat4 translate(float x, float y, float z) {
   return mat4(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, x, y, z, 1);
 }
@@ -42,11 +42,13 @@ mat4 perspective(float x, float y, float z, float w) {
   //bottom row is (x y z w), so it's the 4th entry of each column:
   return mat4(1, 0, 0, x, 0, 1, 0, y, 0, 0, 1, z, 0, 0, 0, w);
 }
+/*
 //matrix operations:
 //multiply(m, m) -> a * b        (built in)
 //multiply(m, v) -> m * v        (built in)
 //transpose(m)   -> transpose(m) (built in)
 //inverse(m)     -> inverse(m)   (built in, glsl es 3.0)
+*/
 
 //move a quadric shape by matrix m.
 //if points move by m, the quadric's matrix becomes inv(m)^t * s * inv(m).
@@ -134,7 +136,7 @@ vec3 shade(vec3 p, vec3 n, vec3 w, vec3 l_pos, vec3 surface) {
   //direction from point to light:
   vec3 d = normalize(l_pos - p);
 
-  vec3 ambient = 0.09 * surface;
+  vec3 ambient = 0.1 * surface;
 
   //lambert's cosine:
   float diffuse = max(0., dot(n, d));
@@ -188,16 +190,12 @@ float noise(vec3 p) {
 }
 
 void main() {
-  //cube = intersection of 3 slabs:
+  //sphere-definition:
   mat4 s[4];
-  s[0] = mat4(1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1); //slab in x.
-  s[1] = mat4(0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1); //slab in y.
-  s[2] = mat4(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, -1); //slab in z.
+  s[0] = mat4(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, -1);
 
-  //build one transform for the whole cube.
-
-  mat4 t_m = rotate_y(0.25 * u_time + 2.5) * rotate_x(0.3 * u_time - 3.0) * rotate_z(0.1 * u_time - 1.0) * scale(vec3(0.2, 0.2, 0.1));
-  //mat4 t_m = rotate_y(0.5) * rotate_x(0.5) * scale(0.5, 0.5, 0.8);
+  //mat4 t_m = rotate_x(0.3 * u_time - 3.0) * rotate_z(0.1 * u_time - 1.0) * scale(vec3(0.8, 0.8, noise(vec3(0.5, 0.5, 0.5)))) * scale(vec3(2.5, 2.5, 2.5));
+  mat4 t_m =  rotate_x(0.3 * u_time - 3.0) * rotate_z(0.1 * u_time - 1.0) * scale(vec3(0.8, 0.8, noise(vec3(0.5, 0.5, 0.5)))) * scale(vec3(4.5, sin(u_time * 0.2), 4.0));
 
   //apply the same transform to every piece of the shape:
   for(int i = 0; i < 3; i++) {
@@ -205,41 +203,25 @@ void main() {
   }
 
   //ray stuff:
-  vec3 v = vec3(0., 0., 3.);
+  vec3 v = vec3(0., 0., 4.);
+
   vec3 w = normalize(vec3(v_pos.xy, -f));
 
-  vec2 t = ray_shape(v, w, s, 3);
+  vec2 t = ray_shape(v, w, s, 1);
 
   frag_col = vec4(vec3(0.), 1.0);
 
   //light:
-  //vec3 l_pos = vec3(sin(u_time), 1.0, 2.0 + cos(u_time));
-  vec3 l_pos_1 = vec3(0.0, 1.0, 2.0);
-//vec3 l_pos_2 = vec3(0.3 * u_time - 3.0, 0.5 * u_time + 3.0, - 30.0);
-  vec3 l_pos_2 = vec3(0.0, 0.0, 0.0);
+  //vec3 l_pos = vec3(-1.0, 0.0, 2.0 +  2.0 * cos(u_time));
+  vec3 l_pos = vec3(sin(u_time), 1.0, 3.0 + cos(u_time));
+  vec3 surface_col = vec3(0.5, 0.2, 0.5); 
 
   //only look at entry:
   if(t.x > 0.0) {
     vec3 p = v + t.x * w;
+    p *= noise(p);
     vec3 n = get_normal(p, s[hit_piece]);
-    vec3 sf1 = vec3(0.5);
-    //vec3 sf1 = vec3(1.0) * noise(p * 3.0 + vec3(0.0, 0.0, u_time));
-    vec3 sf2 = vec3(1.0);
-    frag_col = vec4((shade(p, n, w, l_pos_2, sf2 * noise(p * 1.0 + vec3(0.0, 0.0, u_time * 0.2)) * (drop(5.)))), 0.01);
+    frag_col = vec4(sqrt(shade(p, n, w, l_pos, surface_col)), 1.);
   }
 
-//exit:
-  if(t.y < 1.0) {
-    vec3 p = v + t.y * w;
-    vec3 n = get_normal(p, s[hit_piece]);
-    //vec3 sf2 = vec3(0.0) * noise(p * 20.0 + vec3(0.0, 0.0, u_time));
-    vec3 sf2 = vec3(1.0);
-    frag_col = vec4((shade(p, n, w, l_pos_2, sf2 * noise(p * 10.0 + vec3(0.0, 0.0, u_time * 0.2)) * (drop(5.)))), 0.01);
-  }
 }
-
-/*
-  xx ≤ 1  ⟶   [ 1,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,-1 ]             // slab in x
-  yy ≤ 1  ⟶   [ 0,0,0,0, 0,1,0,0, 0,0,0,0, 0,0,0,-1 ]             // slab in y
-  zz ≤ 1  ⟶   [ 0,0,0,0, 0,0,0,0, 0,0,1,0, 0,0,0,-1 ]             // slab in z
-*/

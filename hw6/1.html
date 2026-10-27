@@ -1,4 +1,4 @@
-<!-- base raytracing with specular, diffuse & ambient :  -->
+<!-- simple vertex :  -->
 
 <body bgcolor="black">
   <canvas id="canvas" width="800" height="800"></canvas>
@@ -69,7 +69,7 @@
 
       float col = 0.9 + 0.9 * noise(v_nor); 
       
-      frag_col = vec4(vec3(col * nor),1.);
+      frag_col = vec4(vec3(nor),1.);
       }`;
 
       //define variables:

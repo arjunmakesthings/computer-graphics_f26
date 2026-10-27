@@ -1,0 +1,108 @@
+<!-- base raytracing with specular, diffuse & ambient :  -->
+
+<body bgcolor="black">
+  <canvas id="canvas" width="800" height="800"></canvas>
+
+  <!-- scripts: -->
+  <script src="../assets/webgl-2.js"></script>
+  <script src="../assets/library.js"></script>
+
+  <!-- webgl: -->
+  <script>
+    function Scene() {
+
+      //helpers: 
+      let make_cube = () => [
+       1,-1, 1,  1,0,0,   1, 1,-1,  1,0,0,   1,-1,-1,  1,0,0, 
+       1,-1, 1,  1,0,0,   1, 1,-1,  1,0,0,   1, 1, 1,  1,0,0,
+      -1,-1, 1, -1,0,0,  -1, 1,-1, -1,0,0,  -1,-1,-1, -1,0,0,
+      -1,-1, 1, -1,0,0,  -1, 1,-1, -1,0,0,  -1, 1, 1, -1,0,0,
+
+      -1, 1, 1, 0, 1,0,   1, 1,-1, 0, 1,0,  -1, 1,-1, 0, 1,0, 
+      -1, 1, 1, 0, 1,0,   1, 1,-1, 0, 1,0,   1, 1, 1, 0, 1,0, 
+      -1,-1, 1, 0,-1,0,   1,-1,-1, 0,-1,0,  -1,-1,-1, 0,-1,0, 
+      -1,-1, 1, 0,-1,0,   1,-1,-1, 0,-1,0,   1,-1, 1, 0,-1,0,
+
+      -1, 1, 1, 0,0, 1,   1,-1, 1, 0,0, 1,  -1,-1, 1, 0,0, 1, 
+      -1, 1, 1, 0,0, 1,   1,-1, 1, 0,0, 1,   1, 1, 1, 0,0, 1, 
+      -1, 1,-1, 0,0,-1,   1,-1,-1, 0,0,-1,  -1,-1,-1, 0,0,-1, 
+      -1, 1,-1, 0,0,-1,   1,-1,-1, 0,0,-1,   1, 1,-1, 0,0,-1, 
+   ];
+
+      this.vertex_size = 6;
+
+      this.vertex_attributes = {
+        a_pos: { size: 3, position: 0 },
+        a_nor: { size: 3, position: 3 },
+      };
+
+      this.shapes = [
+        {vertices: make_cube()},
+      ];
+
+      this.vertex_shader = `#version 300 es
+      uniform mat4 u_mf, u_mi;
+      in vec3 a_pos, a_nor;
+      out vec3 v_pos, v_nor;
+
+      void main(){
+        vec4 pos = u_mf * vec4(a_pos, 1.);
+        vec4 nor = vec4(a_nor, 0.) * u_mi;
+        v_pos = pos.xyz / pos.w;
+        v_pos.z *= -1.;
+        v_nor = nor.xyz;
+        gl_Position = vec4(v_pos, 1.);
+      }`;
+
+      this.fragment_shader = `#version 300 es
+      precision highp float;
+
+      in  vec3 v_pos, v_nor;
+      out vec4 frag_col;
+
+      uniform float u_time; 
+
+      void main() {
+      vec3 nor = normalize(v_nor);
+      float a = .5 * dot(nor,vec3(-.7));
+      float d = .5 + max(0.,a) + max(0.,-a);
+
+      float col = 0.9 + 0.9 * noise(v_nor); 
+      
+      frag_col = vec4(vec3(col * nor),1.);
+      }`;
+
+      //define variables:
+      let start_time = Date.now() / 1000;
+      let m = new Matrix();
+
+      //update function:
+      this.update = () => {
+        let t = Date.now() / 1000 - start_time;
+        //   console.log(t % 1);
+        set_uniform("1f", "u_time", t);
+
+        m.identity(); 
+        m.perspective(100); 
+        m.scale(0.5); 
+        m.rotate_x(t); 
+        m.rotate_y(0.5 * t); 
+        //m.turnX(t); 
+        //m.scale(.1,.1,.5); 
+
+        //m.identity();
+        //m.perspective(10);
+        //m.turnX(t);
+        //m.turnY(2*t);
+        //m.turnZ(3*t);
+        //m.scale(.1,.1,.5);
+
+        set_uniform("Matrix4fv", "u_mf", false, m.get());
+        m.inverse();
+        set_uniform("Matrix4fv", "u_mi", false, m.get());
+      };
+    }
+
+    gl_start(canvas, new Scene());
+  </script>
+</body>

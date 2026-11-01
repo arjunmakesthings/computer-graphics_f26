@@ -11,7 +11,7 @@ function gl_start(canvas, scene) {
     );
   };
 
-  //new (1): used by any shape that doesn't have its own material.
+  //default material for any shape that doesn't have its own material.
   let default_material = {
     amb: [0.1, 0.1, 0.1],
     diff: [0.5, 0.5, 0.5],

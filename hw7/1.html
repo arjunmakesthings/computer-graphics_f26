@@ -1,0 +1,79 @@
+<!-- base test with new library: -->
+
+<body bgcolor="black">
+  <canvas id="canvas" width="800" height="800"></canvas>
+
+  <!-- scripts: -->
+  <script src="../assets/webgl-3.1.js"></script>
+  <script src="../assets/library-1.2.js"></script>
+  <script src="../assets/shapes.js"></script>
+  <script src="../assets/materials.js"></script>
+
+  <!-- webgl: -->
+  <script>
+
+    function Scene() {
+
+      //to make a scene now, we simply define a vertex map (where each thing is, and its size):
+      this.vertex_size = 6;
+      this.vertex_attributes = {
+        a_pos: { size: 3, position: 0 },
+        a_nor: { size: 3, position: 3 },
+      };
+
+      this.vertex_shader = `#version 300 es
+      uniform mat4 u_mf, u_mi;
+      in vec3 a_pos, a_nor;
+      out vec3 v_pos, v_nor;
+
+      void main(){
+        vec4 pos = u_mf * vec4(a_pos, 1.);
+        vec4 nor = vec4(a_nor, 0.) * u_mi;
+        v_pos = pos.xyz / pos.w;
+        v_pos.z *= -1.;
+        v_nor = nor.xyz;
+        gl_Position = vec4(v_pos, 1.);
+      }`;
+
+      this.fragment_shader = `#version 300 es
+      precision highp float;
+
+      in  vec3 v_pos, v_nor;
+      out vec4 frag_col;
+
+      uniform float u_time; 
+
+      void main() {
+      vec3 nor = normalize(v_nor);
+      float a = .5 * dot(nor,vec3(-.7));
+      float d = .5 + max(0.,a) + max(0.,-a);
+      
+      frag_col = vec4(vec3(1.),1.);
+      }`;
+
+      //define variables:
+      let start_time = Date.now() / 1000;
+      let m = new Matrix(); 
+
+      //define shapes to be used: 
+      let sphere = make_sphere(200); 
+
+      this.update = () => {
+        let t = Date.now() / 1000 - start_time;
+        
+        //global transforms:
+        m.identity(); 
+        m.perspective(10); 
+
+        //individual transforms:
+        m.push(); 
+        m.scale(0.5); 
+
+        draw(sphere, Material.gold, m); 
+        m.pop();
+        }
+    }
+
+    gl_start(canvas, new Scene());
+  </script>
+</body>

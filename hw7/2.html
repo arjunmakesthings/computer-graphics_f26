@@ -201,20 +201,29 @@
         m.rotate_x(Math.PI / ceil + ceil * s)
         m.rotate_y(Math.PI / ceil + ceil * c)
         m.rotate_z(Math.PI / ceil + ceil * c)
+        m.rotate_y(t * 0.5); 
 
         //constants for l-system:
         let angle_dev = 0.4; //* Math.sin(t); 
         const scale_dev = 0.75;
 
-        let branch = (angle, l, w, max_depth) => {
+        let branch = (angle, l, w, max_depth, id) => {
           if (max_depth < 0) return;
+
+          let scaled_id = id * 1.7; 
+
+          let sway = Math.sin(t + scaled_id); 
+
+          sway*=0.4; 
+
             m.push();
-              m.rotate_z(angle);
+              m.rotate_z(angle + sway);
               m.move(0., l, 0.); //move to the center of this branch.
 
                 m.push(); //scale only drawing; not transformations.
                   m.scale(w, l, bw);
                   //let mat = Material.rand; 
+                  m.move(0.,0.,noise.simplex2(id, 1 - id)); 
                   draw(shp, Material.shiny_purp, m);
                 //  if (checker == true){
                 //  console.log(mat); 
@@ -229,13 +238,36 @@
 
               m.move(0., l, z_displace); //move to tip of the branch.
               m.rotate_x(l * Math.sin(t)); 
-              branch(angle_dev, l * scale_dev, w * scale_dev, max_depth - 1); //left:
-              branch(-angle_dev, l * scale_dev, w * scale_dev, max_depth - 1); //right.
+              branch(angle_dev, l * scale_dev, w * scale_dev, max_depth - 1, id + 1); //left:
+              branch(-angle_dev, l * scale_dev, w * scale_dev, max_depth - 1, id + 2); //right.
             m.pop();
         };
+        
+      //  let branch = (angle, l, w, max_depth, id) => {
+      //  if (max_depth < 0) return;
+
+      //  let phase = id * 1.7;                                  // unique per branch
+      //  let sway  = .15 * Math.sin(t * 2. + phase);            // each one on its own rhythm
+
+      //  m.push();
+      //    m.rotate_z(angle + sway);                            // sway: children follow
+      //    m.move(0., l, 0.);
+
+      //    m.push();                                            // petal-only motion lives in here
+      //      let pulse = 1. + .2 * Math.sin(t * 3. + phase);    // breathing
+      //      m.rotate_x(.3 * noise.simplex2(id, t * .5));       // flutter
+      //      m.scale(w * pulse, l, bw * pulse);
+      //      draw(shp, Material.shiny_purp, m);
+      //    m.pop();
+
+      //    m.move(0., l, 0.021);
+      //    branch( angle_dev, l * scale_dev, w * scale_dev, max_depth - 1, id * 2 + 1);
+      //    branch(-angle_dev, l * scale_dev, w * scale_dev, max_depth - 1, id * 2 + 2);
+      //  m.pop();
+      //};
 
       //base branch:
-      branch(0., bl * 2.2, bw, 6);
+      branch(0., bl * 2.2, bw, 6, 0);
       }
     }
 

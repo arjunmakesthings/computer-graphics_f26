@@ -32,7 +32,20 @@ let Material = {
   rand: {
     amb: [Math.random(), Math.random(), Math.random()],
     diff: [Math.random(), Math.random(), Math.random()],
-    spec: [Math.random(), Math.random(), Math.random(), 10 + Math.random() * (50 - 10),
+    spec: [
+      Math.random(),
+      Math.random(),
+      Math.random(),
+      10 + Math.random() * (50 - 10),
+    ],
+  },
+  shiny_purp: {
+    amb: [0.016283929154731647, 0.08764720756443478, 0.5724935667942093],
+    diff: [0.594217449300263, 0.2371095583196372, 0.6086975349351472],
+    spec: [
+      0.2596312893173689, 0.6473678998769385, 0.2791328272206144,
+      50.21349085563028,
     ],
   },
 };
+

@@ -15,10 +15,11 @@
   <script src="../assets/library-1.2.js"></script>
   <script src="../assets/shapes.js"></script>
   <script src="../assets/materials.js"></script>
+  <script src="../assets/noise.js"></script>
 
   <!-- webgl: -->
   <script>
-
+    let checker = true;
     function Scene() {
       //to make a scene now, we simply define a vertex map (where each thing is, and its size):
       this.vertex_size = 6;
@@ -54,7 +55,9 @@
       uniform float u_time; 
 
       void main() {
-        vec3 l_dir = normalize(vec3(-1., -1., 1.)); 
+        vec3 l_dir = normalize(vec3(0., 1., 1.)); 
+        //vec3 l_dir = normalize(vec3(v_pos)); 
+        //vec3 l_dir = normalize(vec3(v_pos)); 
         vec3 n = normalize(v_nor); 
 
         vec3 v = vec3(0., 0., 1.); 
@@ -64,7 +67,17 @@
 
         vec3 light = u_amb + u_diff * max (0., sim) + u_spec.rgb * pow(max(0., dot(ref, v)), u_spec.w); 
 
-        frag_col = vec4(light, 1.); 
+        float freq  = 23.; //size; bigger: smaller.
+        float speed = .3; //speed.
+        float amp   = 1.; //strength.
+
+        float ns = noise(v_pos * freq + vec3(0., u_time * speed, 0.));
+
+        //float ns = noise(v_pos + (mod(u_time, 10.) * 0.1)); 
+
+        light += ns; 
+
+        frag_col = vec4(sqrt(light), 1.); 
       }`;
 
       //define variables:
@@ -72,37 +85,168 @@
       let m = new Matrix(); 
 
       //define shapes to be used: 
-      let sphere = make_sphere(20); 
+      let shp = make_sphere(); 
+
+      /*
+
+      */
+
+      //let rules = { f: 'f[+f]f[-f]f' };   // classic plant-ish rule
+      //let axiom = 'f';
+      //let iterations = 3;
+
+      //let expand = (s, n) => {
+      //  for (let k = 0; k < n; k++)
+      //    s = s.split('').map(c => rules[c] ?? c).join('');
+      //  return s;
+      //};
+
+      //let lstring = expand(axiom, iterations);
+
+      //let draw_lsystem = (s, len, w, angle, mat) => {
+      //  for (let c of s) {
+      //    switch (c) {
+      //      case 'f':                       // draw a segment, end at its tip
+      //        m.move(0, len, 0);            // go to segment center
+      //        m.push();
+      //          m.scale(w, len, w);
+      //          draw(sphere, mat, m);
+      //        m.pop();
+      //        m.move(0, len, 0);            // go to segment tip
+      //        break;
+      //      case '+': m.rotate_z( angle); break;
+      //      case '-': m.rotate_z(-angle); break;
+      //      case '[': m.push(); break;      // save turtle state
+      //      case ']': m.pop();  break;      // restore turtle state
+      //    }
+      //  }
+      //};
+
+      //this.update = () => {
+      //  m.identity(); 
+      //  m.perspective(10); 
+
+      //  let t = Date.now() / 1000 - start_time;
+
+      //  let bl = 0.09; 
+      //  let bw = 0.05; 
+
+      //  //origin move:
+      //  m.move(0., -1. + bl + (bl * 0.2) ,0.); 
+
+      //  //branch:
+      //  m.push();  
+      //    m.scale(bw, bl, 0.1);
+      //    draw(sphere, Material.red_plastic, m);
+      //  m.pop();
+
+      //  m.push(); 
+      //    m.scale(bw, bl, 0.1);
+      //    m.move(0., bl * 2., 0.)
+      //    draw(sphere, Material.blue_plastic, m);
+      //  m.pop();
+      //}
+
+      //this.update = () => {
+      //  let t = Date.now() / 1000 - start_time;
+        
+      //  //global transforms:
+      //  m.identity();
+      //  //m.perspective(10);
+
+      //  let bl = 0.09; 
+      //  let bw = 0.05; 
+
+      //  //set origin to base top:
+      //  m.move(0., -1. + bl + (bl * 0.2) ,0.); 
+
+      //  //base:
+      //  m.push(); 
+      //    m.scale(bw, bl, 0.1); 
+      //    draw(sphere, Material.red_plastic, m); 
+      //  m.pop();
+
+      //  //branch:
+      //  for (let y_off = 0.; y_off < 1.2; y_off+=bl * 2.){
+      //    for (let i = 0; i<2; i++){
+      //      m.push(); 
+      //        let a = (i < 1)? 0.2 : -0.2;
+      //        m.rotate_z(a * y_off);
+      //        m.move(0., bl * 2 + y_off, 0.); 
+      //        m.scale(bw, bl, 0.1); 
+      //        draw(sphere, Material.blue_plastic, m); 
+      //      m.pop();
+      //    }
+      //  }
+      //}
 
       this.update = () => {
         let t = Date.now() / 1000 - start_time;
-        
+        set_uniform("1f", "u_time", t);
+
         //global transforms:
         m.identity();
-        //m.perspective(10);
+        m.perspective(10);
 
-        let bl = 0.2; 
-        let bw = 0.05; 
+        let bl = 0.09;
+        let bw = 0.05;
 
-        //set origin to base top:
+        let s = Math.sin(t); 
+        let c = Math.cos(t); 
+
+        //origin move:
         m.move(0., -1. + bl + (bl * 0.2) ,0.); 
 
-        //base:
-        m.push(); 
-          m.scale(bw, bl, 0.1); 
-          draw(sphere, Material.red_plastic, m); 
-        m.pop();
+        const ceil = 0.1; 
+        m.rotate_x(Math.PI / ceil + ceil * s)
+        m.rotate_y(Math.PI / ceil + ceil * c)
+        m.rotate_z(Math.PI / ceil + ceil * c)
 
-        m.push(); 
-          let a = 0.2;
-          m.rotate_z(0.2);
-          m.move(0., bl * 2, 0.); 
-          m.scale(bw, bl, 0.1); 
-          draw(sphere, Material.blue_plastic, m); 
-        m.pop();
-        }
+        //constants for l-system:
+        let angle_dev = 0.4; //* Math.sin(t); 
+        const scale_dev = 0.75;
+
+        let branch = (angle, l, w, max_depth) => {
+          if (max_depth < 0) return;
+            m.push();
+              m.rotate_z(angle);
+              m.move(0., l, 0.); //move to the center of this branch.
+
+                m.push(); //scale only drawing; not transformations.
+                  m.scale(w, l, bw);
+                  //let mat = Material.rand; 
+                  draw(shp, Material.shiny_purp, m);
+                //  if (checker == true){
+                //  console.log(mat); 
+                //  checker = false;
+                //}
+                m.pop();
+
+                //let z_displace = map(noise.simplex2(w + t * 0.2,l), -1.,1.,-0.005,0.005)
+                let z_displace = 0.021; 
+
+                //console.log(noise.simplex2(w,l)); 
+
+              m.move(0., l, z_displace); //move to tip of the branch.
+              m.rotate_x(l * Math.sin(t)); 
+              branch(angle_dev, l * scale_dev, w * scale_dev, max_depth - 1); //left:
+              branch(-angle_dev, l * scale_dev, w * scale_dev, max_depth - 1); //right.
+            m.pop();
+        };
+
+      //base branch:
+      branch(0., bl * 2.2, bw, 6);
+      }
     }
 
     gl_start(canvas, new Scene());
+
+    //since i have frag in a different file:
+    //let scene = new Scene();
+    //fetch('./frag.frag').then(r => r.text()).then(src => {
+    //  scene.fragment_shader = src;
+    //  gl_start(canvas, scene);
+    //});
+
   </script>
 </body>

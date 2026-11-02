@@ -1,5 +1,5 @@
 //return a sphere with n-segments:
-function make_sphere(n) {
+function make_sphere(n = 20) {
   let vs = [];
 
   let point = (u, v) => {

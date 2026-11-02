@@ -66,3 +66,8 @@ let normalize = (v) => {
   let s = Math.sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
   return [v[0] / s, v[1] / s, v[2] / s];
 };
+
+//helper to map:
+let map = (v, in_lo, in_hi, out_lo, out_hi) => {
+  return out_lo + ((v - in_lo) / (in_hi - in_lo)) * (out_hi - out_lo);
+};

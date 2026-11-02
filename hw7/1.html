@@ -13,7 +13,6 @@
   <script>
 
     function Scene() {
-
       //to make a scene now, we simply define a vertex map (where each thing is, and its size):
       this.vertex_size = 6;
       this.vertex_attributes = {
@@ -41,14 +40,24 @@
       in  vec3 v_pos, v_nor;
       out vec4 frag_col;
 
+      uniform vec3 u_amb, u_diff; 
+
+      uniform vec4 u_spec; 
+
       uniform float u_time; 
 
       void main() {
-      vec3 nor = normalize(v_nor);
-      float a = .5 * dot(nor,vec3(-.7));
-      float d = .5 + max(0.,a) + max(0.,-a);
-      
-      frag_col = vec4(vec3(1.),1.);
+        vec3 l_dir = normalize(vec3(-1., -1., 1.)); 
+        vec3 n = normalize(v_nor); 
+
+        vec3 v = vec3(0., 0., 1.); 
+
+        float sim = dot (n, l_dir); 
+        vec3 ref = 2. * dot(n, l_dir) * n - l_dir; 
+
+        vec3 light = u_amb + u_diff * max (0., sim) + u_spec.rgb * pow(max(0., dot(ref, v)), u_spec.w); 
+
+        frag_col = vec4(sqrt(light), 1.); 
       }`;
 
       //define variables:
@@ -62,14 +71,23 @@
         let t = Date.now() / 1000 - start_time;
         
         //global transforms:
-        m.identity(); 
-        m.perspective(10); 
+        m.identity();
+        m.perspective(10);
 
-        //individual transforms:
-        m.push(); 
-        m.scale(0.5); 
+        m.push();
+        m.move(0., .2, 0.);
+        m.scale(0.1, 0.2, 0.1);
+        draw(sphere, Material.red_plastic, m);
+        m.pop();
 
-        draw(sphere, Material.gold, m); 
+        m.push();
+        m.move(0., 0., 0.);
+        //m.rotate_z(Math.PI + Math.cos(t) / 2);
+        let a = map(Math.sin(t), -1., 1., 0., 1.); 
+        m.rotate_z(a + Math.PI); 
+        m.move(0., .2, 0.);
+        m.scale(0.1, 0.2, 0.1);   // stretch first, then rotate
+        draw(sphere, Material.blue_plastic, m);
         m.pop();
         }
     }

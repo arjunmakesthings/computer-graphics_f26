@@ -1,0 +1,108 @@
+<!-- flowery thing (?): -->
+
+<body bgcolor="black">
+  <canvas id="canvas" width="800" height="800"></canvas>
+
+  <!-- for debug: -->
+  <style>
+    canvas{
+      border: 1px solid white;
+    }
+  </style>
+
+  <!-- scripts: -->
+  <script src="../assets/webgl-3.1.js"></script>
+  <script src="../assets/library-1.2.js"></script>
+  <script src="../assets/shapes.js"></script>
+  <script src="../assets/materials.js"></script>
+
+  <!-- webgl: -->
+  <script>
+
+    function Scene() {
+      //to make a scene now, we simply define a vertex map (where each thing is, and its size):
+      this.vertex_size = 6;
+      this.vertex_attributes = {
+        a_pos: { size: 3, position: 0 },
+        a_nor: { size: 3, position: 3 },
+      };
+
+      this.vertex_shader = `#version 300 es
+      uniform mat4 u_mf, u_mi;
+      in vec3 a_pos, a_nor;
+      out vec3 v_pos, v_nor;
+
+      void main(){
+        vec4 pos = u_mf * vec4(a_pos, 1.);
+        vec4 nor = vec4(a_nor, 0.) * u_mi;
+        v_pos = pos.xyz / pos.w;
+        v_pos.z *= -1.;
+        v_nor = nor.xyz;
+        gl_Position = vec4(v_pos, 1.);
+      }`;
+
+      this.fragment_shader = `#version 300 es
+      precision highp float;
+
+      in  vec3 v_pos, v_nor;
+      out vec4 frag_col;
+
+      uniform vec3 u_amb, u_diff; 
+
+      uniform vec4 u_spec; 
+
+      uniform float u_time; 
+
+      void main() {
+        vec3 l_dir = normalize(vec3(-1., -1., 1.)); 
+        vec3 n = normalize(v_nor); 
+
+        vec3 v = vec3(0., 0., 1.); 
+
+        float sim = dot (n, l_dir); 
+        vec3 ref = 2. * dot(n, l_dir) * n - l_dir; 
+
+        vec3 light = u_amb + u_diff * max (0., sim) + u_spec.rgb * pow(max(0., dot(ref, v)), u_spec.w); 
+
+        frag_col = vec4(light, 1.); 
+      }`;
+
+      //define variables:
+      let start_time = Date.now() / 1000;
+      let m = new Matrix(); 
+
+      //define shapes to be used: 
+      let sphere = make_sphere(20); 
+
+      this.update = () => {
+        let t = Date.now() / 1000 - start_time;
+        
+        //global transforms:
+        m.identity();
+        //m.perspective(10);
+
+        let bl = 0.2; 
+        let bw = 0.05; 
+
+        //set origin to base top:
+        m.move(0., -1. + bl + (bl * 0.2) ,0.); 
+
+        //base:
+        m.push(); 
+          m.scale(bw, bl, 0.1); 
+          draw(sphere, Material.red_plastic, m); 
+        m.pop();
+
+        m.push(); 
+          let a = 0.2;
+          m.rotate_z(0.2);
+          m.move(0., bl * 2, 0.); 
+          m.scale(bw, bl, 0.1); 
+          draw(sphere, Material.blue_plastic, m); 
+        m.pop();
+        }
+    }
+
+    gl_start(canvas, new Scene());
+  </script>
+</body>

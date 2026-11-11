@@ -52,7 +52,6 @@ function gl_start(canvas, scene) {
       );
     };
 
-    //new (6): stash vertex size on gl so the global draw() can see it.
     gl.vertex_size = scene.vertex_size;
 
     for (let name in scene.vertex_attributes) {
@@ -60,7 +59,6 @@ function gl_start(canvas, scene) {
       set_vertex_attribute(name, attribute.size, attribute.position);
     }
 
-    //scene.shapes is now optional; old scenes still work.
     let shapes = scene.shapes ?? [];
     for (let n = 0; n < shapes.length; n++) {
       shapes[n].mesh = new Float32Array(shapes[n].vertices);
@@ -73,7 +71,6 @@ function gl_start(canvas, scene) {
     }
 
     setInterval(function () {
-      //new (7): update can call draw() itself, as many times as it likes.
       if (scene.update) scene.update();
 
       //any stored shapes are drawn after update, same as before.
@@ -90,7 +87,6 @@ let default_material = {
   spec: [0, 0, 0, 1],
 };
 
-//new (8): plain arrays get converted to float32arrays once, then cached.
 let mesh_cache = new WeakMap();
 let as_mesh = (v) => {
   if (v instanceof Float32Array) return v;
@@ -99,14 +95,12 @@ let as_mesh = (v) => {
   return mesh;
 };
 
-//new (9): draw one mesh right now, with a material and the current matrix.
 let draw = (mesh, material, matrix) => {
   mesh = as_mesh(mesh);
 
-  //forward matrix, then inverse; restore the original afterwards.
   set_uniform("Matrix4fv", "u_mf", false, matrix.get());
   if (matrix.push) {
-    matrix.push(); //exact restore, if your matrix has a stack.
+    matrix.push(); 
     matrix.inverse();
     set_uniform("Matrix4fv", "u_mi", false, matrix.get());
     matrix.pop();
@@ -116,7 +110,7 @@ let draw = (mesh, material, matrix) => {
     matrix.inverse();
   }
 
-  //this draw's material (or the default).
+  //this draws material (or the default).
   let mat = material ?? default_material;
   set_uniform("3fv", "u_amb", mat.amb);
   set_uniform("3fv", "u_diff", mat.diff);

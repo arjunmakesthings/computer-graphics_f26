@@ -24,7 +24,7 @@
 
     <!-- scripts: -->
     <script src="../assets/webgl-3.1.js"></script>
-    <script src="../assets/library-1.2.js"></script>
+    <script src="../assets/library-1.3.js"></script>
     <script src="../assets/shapes.js"></script>
     <script src="../assets/materials.js"></script>
     <script src="../assets/noise.js"></script>
@@ -86,7 +86,7 @@
         let m = new Matrix(); 
   
         //define shapes to be used: 
-        let shp = make_sphere(50); 
+        let shp = make_cube(); 
   
         this.update = () => {
           //resize to active canvas:
@@ -100,11 +100,35 @@
           //global transforms:
           m.identity();
           m.scale(canvas.height / canvas.width, 1, 1);
-          m.perspective(10);
+          //isometric rotation:
+          m.rotate_x(Math.atan(1 / Math.sqrt(2)));
+          m.rotate_y(Math.PI / 4);
+          //m.perspective(45); 
 
-          m.scale(0.5); 
+          //origin point:
+          const w = 0.1; 
+          const h = 0.2; 
+          m.move(0., (1. - h/2) - 0.2, 0.); 
 
-          draw(shp, Material.red_plastic, m); 
+          m.push();
+            m.scale(w, h, w);
+            draw(shp, Material.red_plastic, m);
+          m.pop();
+
+          m.move(0., - 2 * h, 0.);
+
+          m.push();
+            m.scale(w, h, w);
+            draw(shp, Material.blue_plastic, m);
+          m.pop();
+
+          m.move(0., - 2 * h, 0.);
+
+          m.push();
+            m.scale(w, h, w);
+            draw(shp, Material.red_plastic, m);
+          m.pop();
+
           };
       }
   

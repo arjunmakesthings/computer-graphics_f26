@@ -83,3 +83,11 @@ function make_cube() {
   ];
 }
 
+/*
+more shapes: 
+
+this, i asked claude to generate. 
+*/
+
+
+

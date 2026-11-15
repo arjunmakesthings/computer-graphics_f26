@@ -86,7 +86,7 @@
         let m = new Matrix(); 
   
         //define shapes to be used: 
-        let shp = make_cube(); 
+        let shp = make_sphere(20); 
   
         this.update = () => {
           //resize to active canvas:
@@ -102,33 +102,65 @@
           m.scale(canvas.height / canvas.width, 1, 1);
           //isometric rotation:
           m.rotate_x(Math.atan(1 / Math.sqrt(2)));
-          m.rotate_y(Math.PI / 4);
-          //m.perspective(45); 
+          m.rotate_y(Math.PI  / 4);
+          m.perspective(45); 
+
+          //wrist: 
+          let x = map(Math.cos(t), -1, 1, 0.5, 0.8); 
+          let y = map(Math.sin(t), -1, 1, -0.2, 0.2);
+
+          //length of first limb: 
+          let a = 0.2;
+          //length of second limb: 
+          let b = 0.2;
+          //position of wrist:
+          let C = [x, y, 0]; 
+          //direction of elbow
+          let D = [0., 1, 0]; 
+
+          //returns a 3-d position of the elbow.
+          let elbow = ik(a,b,C,D); 
+
+          const w = 0.2; 
+          const h = 0.03; 
+          const d = h;
+
+          //shoulder:
+          const base_x = -0.9; 
+          m.move(base_x + w, 0. ,0); 
+
+          m.push(); 
+            m.move(elbow[0] + 2 * a, elbow[1], elbow[2]);
+            m.scale(w, h, d);
+            draw(shp, Material.red_plastic, m); 
+          m.pop(); 
+
+          m.push(); 
+            m.move(w*2, 0., 0.);
+            m.move(x,y,0);  
+            m.scale(w,h,d); 
+            draw(shp, Material.blue_plastic, m); 
+          m.pop(); 
 
           //origin point:
-          const w = 0.1; 
-          const h = 0.2; 
-          m.move(0., (1. - h/2) - 0.2, 0.); 
+          //or shoulder: 
+          //m.move(-1, 0., 0.); 
 
-          m.push();
-            m.scale(w, h, w);
-            draw(shp, Material.red_plastic, m);
-          m.pop();
-
-          m.move(0., - 2 * h, 0.);
-
-          m.push();
-            m.scale(w, h, w);
-            draw(shp, Material.blue_plastic, m);
-          m.pop();
-
-          m.move(0., - 2 * h, 0.);
-
-          m.push();
-            m.scale(w, h, w);
-            draw(shp, Material.red_plastic, m);
-          m.pop();
-
+          ////upper-arm: 
+          //m.push(); 
+          //  m.rotate_z(Math.atan2(elbow[1], elbow[0]));
+          //  m.move(a / 2, 0., 0.); 
+          //  m.scale(a/2, h, d); 
+          //  draw(shp, Material.red_plastic, m); 
+          //m.pop();
+          
+          //m.push();
+          //  m.move(elbow[0], elbow[1], elbow[2]);
+          //  m.rotate_z(Math.atan2(y - elbow[1], x - elbow[0]));
+          //  m.move(b / 2, 0., 0.);
+          //  m.scale(b / 2, h, d);
+          //  draw(shp, Material.blue_plastic, m);
+          //m.pop();
           };
       }
   

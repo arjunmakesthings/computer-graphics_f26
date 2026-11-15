@@ -66,6 +66,9 @@ let normalize = (v) => {
   return [v[0] / s, v[1] / s, v[2] / s];
 };
 let dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+//helper for vector math: 
+let v_add = (p, q) => [p[0] + q[0], p[1] + q[1], p[2] + q[2]];
+let v_sub = (p, q) => [p[0] - q[0], p[1] - q[1], p[2] - q[2]];
 
 //helper to map:
 let map = (v, in_lo, in_hi, out_lo, out_hi) => {

@@ -60,7 +60,7 @@ let Matrix = function () {
   this.rotate_y = t        => { m[top] = mxm(m[top], [C(t),0,-S(t),0, 0,1,0,0, S(t),0,C(t),0, 0,0,0,1]); return this; }
   this.rotate_z = t        => { m[top] = mxm(m[top], [C(t),S(t),0,0, -S(t),C(t),0,0, 0,0,1,0, 0,0,0,1]); return this; }
 
-  this.draw = (shape, material) => { draw(shape, material, this); return this; }
+  this.draw = (shape, material, texture, sheer) => { draw(shape, material, this, texture, sheer); return this; }
 };
 
 //more math stuff:

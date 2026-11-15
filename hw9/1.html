@@ -1,3 +1,5 @@
+<!-- basic cube with bricks: -->
+
 <!doctype html>
 <html lang="en">
   <head>
@@ -13,7 +15,7 @@
     <!-- for debug: -->
     <style>
       canvas {
-        border: 1px solid white;
+        /*border: 1px solid white;*/
         margin: 0; 
         padding: 0; 
         width: 99vw;
@@ -23,9 +25,9 @@
     </style>
 
     <!-- scripts: -->
-    <script src="../assets/webgl-3.1.js"></script>
+    <script src="../assets/webgl-4.js"></script>
     <script src="../assets/library-1.4.js"></script>
-    <script src="../assets/shapes.js"></script>
+    <script src="../assets/shapes-2.js"></script>
     <script src="../assets/materials.js"></script>
     <script src="../assets/noise.js"></script>
     
@@ -35,15 +37,18 @@
       function Scene() {
 
         //to make a scene now, we simply define a vertex map (where each thing is, and its size):
-        this.vertex_size = 6;
+        this.vertex_size = 8;
         this.vertex_attributes = {
           a_pos: { size: 3, position: 0 },
           a_nor: { size: 3, position: 3 },
+          a_uv: { size: 2, position: 6 },
         };
   
         this.vertex_shader = `#version 300 es
         uniform mat4 u_mf, u_mi;
         in vec3 a_pos, a_nor;
+        in  vec2 a_uv;
+        out vec2 v_uv;
         out vec3 v_pos, v_nor;
   
         void main(){
@@ -52,6 +57,7 @@
           v_pos = pos.xyz / pos.w;
           v_pos.z *= -1.;
           v_nor = nor.xyz;
+          v_uv = a_uv;
           gl_Position = vec4(v_pos, 1.);
         }`;
   
@@ -59,6 +65,7 @@
         precision highp float;
   
         in  vec3 v_pos, v_nor;
+        in  vec2 v_uv;
         out vec4 frag_col;
   
         uniform vec3 u_amb, u_diff; 
@@ -66,8 +73,16 @@
         uniform vec4 u_spec; 
   
         uniform float u_time; 
+
+        uniform sampler2D u_sampler[16];
+        uniform int u_texture;
   
         void main() {
+
+        vec4 tex = vec4(0.5); 
+
+        tex = texture(u_sampler[0], v_uv); 
+
         vec3 l_dir = normalize(vec3(-1., -1., 1.)); 
         vec3 n = normalize(v_nor); 
 
@@ -78,7 +93,7 @@
 
         vec3 light = u_amb + u_diff * max (0., sim) + u_spec.rgb * pow(max(0., dot(ref, v)), u_spec.w); 
 
-        frag_col = vec4(sqrt(light), 1.); 
+        frag_col = vec4(tex.rgb * sqrt(light), 1.); 
         }`;
   
         //define variables:
@@ -86,7 +101,13 @@
         let m = new Matrix(); 
   
         //define shapes to be used: 
-        let shp = make_sphere(50); 
+        let shp = make_cube(); 
+
+        this.init = () => {
+        set_uniform('1iv', 'u_sampler', [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]);
+        load_texture(0, 'brick.png');
+        //loadTexture(1, 'brick.png');
+   }
   
         this.update = () => {
           //resize to active canvas:
@@ -98,9 +119,12 @@
           set_uniform("1f", "u_time", t);
   
           //global transforms:
-          m.identity().scale(canvas.height / canvas.width, 1, 1).perspective(10);
+          m.identity().scale(canvas.height / canvas.width, 1, 1).perspective(10); 
 
-          m.scale(0.5).draw(shp, Material.red_plastic, m); 
+          m.rotate_x(Math.atan(1 / Math.sqrt(2)));
+          m.rotate_y(Math.PI  / 4);
+
+          m.scale(0.5).draw(shp, Material.red_plastic, 0); 
           };
       }
   

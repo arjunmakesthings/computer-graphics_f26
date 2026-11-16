@@ -103,7 +103,8 @@
         let m = new Matrix(); 
   
         //define shapes to be used: 
-        let shp = make_text("something"); 
+        let str = "something";
+        let shp = make_text(str);
 
         this.init = () => {
         set_uniform('1iv', 'u_sampler', [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]);
@@ -126,15 +127,15 @@
           m.rotate_x(Math.atan(1 / Math.sqrt(2)));
           m.rotate_y(Math.PI  / 4);
 
-          m.push(); 
+          //opaque cube:
+          m.push();
+          m.move(0, 0, 0).scale(0.08).move(-str.length / 2, 0, 0).draw(make_cube(), Material.red_plastic, 1, 0.);
+          m.pop();
 
-            let str = "something";
-            m.move(0, 0, 0).scale(0.08).move(-str.length / 2, 0, 0).draw(shp, Material.red_plastic, 0, 0.5);
-          m.pop(); 
-
-          m.push(); 
-          m.move(0, 0, 0).scale(0.08).move(-str.length / 2, 0, 0).draw(make_cube(), Material.red_plastic, 1, 0);
-        m.pop(); 
+          //sheer text in front of the cube:
+          m.push();
+            m.move(0, 0, 0).scale(0.08).move(-str.length / 2, 0, 1.5).draw(shp, Material.red_plastic, 0, 0.5);
+          m.pop();
 
             };
       }

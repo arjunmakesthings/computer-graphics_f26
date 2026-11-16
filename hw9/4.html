@@ -1,0 +1,259 @@
+<!-- multiple letters in cubes: -->
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>sketch</title>
+  </head>
+  <body bgcolor="black">
+    <!--<canvas id="canvas" width="800" height="800"></canvas>-->
+    <canvas id="canvas"></canvas>
+
+    <!-- for debug: -->
+    <style>
+      canvas {
+        /*border: 1px solid white;*/
+        margin: 0;
+        padding: 0;
+        width: 99vw;
+        height: 99vh;
+        overflow: hidden;
+      }
+    </style>
+
+    <!-- scripts: -->
+    <script src="../assets/webgl-4.js"></script>
+    <script src="../assets/library-1.4.js"></script>
+    <script src="../assets/shapes-2.js"></script>
+    <script src="../assets/materials.js"></script>
+    <script src="../assets/noise.js"></script>
+
+    <!-- webgl: -->
+    <script>
+      let checker = true;
+      function Scene() {
+        //to make a scene now, we simply define a vertex map (where each thing is, and its size):
+        this.vertex_size = 8;
+        this.vertex_attributes = {
+          a_pos: { size: 3, position: 0 },
+          a_nor: { size: 3, position: 3 },
+          a_uv: { size: 2, position: 6 },
+        };
+
+        this.vertex_shader = `#version 300 es
+        uniform mat4 u_mf, u_mi;
+        in vec3 a_pos, a_nor;
+        in  vec2 a_uv;
+        out vec2 v_uv;
+        out vec3 v_pos, v_nor;
+  
+        void main(){
+          vec4 pos = u_mf * vec4(a_pos, 1.);
+          vec4 nor = vec4(a_nor, 0.) * u_mi;
+          v_pos = pos.xyz / pos.w;
+          v_pos.z *= -1.;
+          v_nor = nor.xyz;
+          v_uv = a_uv;
+          gl_Position = vec4(v_pos, 1.);
+        }`;
+
+        this.fragment_shader = `#version 300 es
+        precision highp float;
+  
+        in  vec3 v_pos, v_nor;
+        in  vec2 v_uv;
+        out vec4 frag_col;
+  
+        uniform vec3 u_amb, u_diff; 
+  
+        uniform vec4 u_spec; 
+  
+        uniform float u_time; 
+
+        uniform sampler2D u_sampler[16];
+        uniform int u_texture;
+        uniform float u_sheer; 
+  
+        void main() {
+
+        vec4 tex = vec4(1.); 
+
+        if (u_texture == 0) tex = texture(u_sampler[0], v_uv); 
+        if (u_texture == 1) tex = texture(u_sampler[1], v_uv); 
+
+        vec3 l_dir = normalize(vec3(-1., -1., 1.)); 
+        vec3 n = normalize(v_nor); 
+
+        vec3 v = vec3(0., 0., 1.); 
+
+        float sim = dot (n, l_dir); 
+        vec3 ref = 2. * dot(n, l_dir) * n - l_dir; 
+
+        vec3 new_u_amb = vec3(0.3); 
+
+        vec3 light = new_u_amb + u_diff * max (0., sim) + u_spec.rgb * pow(max(0., dot(ref, v)), u_spec.w); 
+
+        frag_col = vec4(light * tex.rgb, 1. - tex.r * u_sheer);
+        }`;
+
+        this.init = () => {
+          set_uniform(
+            "1iv",
+            "u_sampler",
+            [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+          );
+          load_texture(0, "../assets/textures/white.jpeg");
+          load_texture(1, "../assets/textures/font.png");
+        };
+
+        //define variables:
+        let start_time = Date.now() / 1000;
+        let m = new Matrix();
+
+        this.update = () => {
+          //resize to active canvas:
+          canvas.width = canvas.clientWidth;
+          canvas.height = canvas.clientHeight;
+          gl.viewport(0, 0, canvas.width, canvas.height);
+
+          let t = Date.now() / 1000 - start_time;
+          set_uniform("1f", "u_time", t);
+
+          //global transforms:
+          m.identity()
+            .scale(canvas.height / canvas.width, 1, 1)
+            .perspective(10);
+
+          let st = `my words & your words; all mushed together; indiscernible; like our beings.`;
+
+          //all faces of a cube:
+          const faces = [
+            [0, 0], //f
+            [0, Math.PI], //b
+            [0, Math.PI / 2], //r
+            [0, -Math.PI / 2], //l
+            [-Math.PI / 2, 0], //t
+            [Math.PI / 2, 0], //b
+          ];
+
+          let y = 4;
+          let col = 0;
+
+          //global transform:
+          m.move(-1.2, 0.15, 0); 
+
+          for (let i = 0; i < st.length; i++) {
+            if (st[i] === " ") {
+              col++; 
+              continue;
+            }
+
+            if (st[i] === ";") {
+              y -= 4;
+              col = 0;
+              continue;
+            }
+
+              m.push();
+                m.scale(0.06);
+                m.move(col * 1.6, y, 0);
+                m.rotate_y(i);
+                m.rotate_x(t);
+
+                m.push();
+                  m.draw(make_cube(), Material.silver, 0, 0.);
+                m.pop();
+
+                let txt = make_text(st[i]);
+
+                for (let [rx, ry] of faces) {
+                  m.push();
+                    m.rotate_x(rx);
+                    m.rotate_y(ry);
+                    m.move(-0.5, -0.08, 1.001);
+                    m.draw(txt, Material.black, 1, 1.);
+                  m.pop();
+                }
+              m.pop();
+            col+=1;
+          }
+
+          //let y = 0;
+          //for (let i = 0; i < st.length; i++) {
+
+          //  if (st[i] === " ") continue;
+
+          //  if (st[i] === ";") {
+          //    y-=2;
+          //    continue;
+          //  }
+          //  m.push();
+          //    m.scale(0.08);
+          //    m.move(i - st.length + 1, y, 0);
+          //    m.rotate_y(i);
+          //    m.rotate_x(t);
+
+          //    m.push();
+          //      m.draw(make_cube(), Material.red_plastic, 0, 0);
+          //    m.pop();
+
+          //    let txt = make_text(st[i]);
+
+          //    for (let [rx, ry] of faces) {
+          //      m.push();
+          //        m.rotate_x(rx);
+          //        m.rotate_y(ry);
+          //        m.move(-0.5, -0.08, 1.001);
+          //        m.draw(txt, Material.red_plastic, 1, 1);
+          //      m.pop();
+          //    }
+          //  m.pop();
+          //}
+
+          //for (let i = 0; i < st.length; i++) {
+          //  if (st[i] === " ") continue;
+          //  m.push();
+          //  m.scale(0.08);
+          //  //m.move(map(i, 0, st.length, -1, 1), 0, 0)
+          //  m.move(i - st.length + 1, 0, 0);
+          //  //m.rotate_y(i);
+          //  //m.rotate_x(t);
+          //  m.push();
+          //  m.draw(make_cube(), Material.red_plastic, 0, 0);
+          //  m.pop();
+          //  m.push();
+          //  m.move(-0.5, -0.08, 1.001);
+          //  m.draw(make_text(st[i]), Material.red_plastic, 1, 1);
+          //  m.pop();
+          //  m.pop();
+          //}
+
+          //for (let i = 0; i < st.length; i++) {
+          //  if (st[i] === " ") continue;
+
+          //  m.push();
+          //    m.move(map(i, 0, st.length, -1, 1), 0, 0);
+          //    m.move(0, 0, Math.sin(i + t) * 0.5);
+          //    m.scale(0.05)
+          //    m.draw(make_cube(), Material.red_plastic, 0, 0.2);
+          //    m.move(0, 0, 0.9 + Math.cos(i + t) * 0.5)
+          //    m.draw(make_text(st[i]), Material.red_plastic, 0, 0.)
+          //  m.pop();
+          //}
+        };
+      }
+
+      gl_start(canvas, new Scene());
+
+      //since i have frag in a different file:
+      //let scene = new Scene();
+      //fetch('./frag.frag').then(r => r.text()).then(src => {
+      //  scene.fragment_shader = src;
+      //  gl_start(canvas, scene);
+      //});
+    </script>
+  </body>
+</html>

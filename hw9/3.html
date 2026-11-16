@@ -8,7 +8,7 @@
 
     <title>sketch</title>
   </head>
-  <body bgcolor="white">
+  <body bgcolor="black">
     <!--<canvas id="canvas" width="800" height="800"></canvas>-->
     <canvas id="canvas"></canvas>
 
@@ -94,7 +94,7 @@
 
         vec3 light = u_amb + u_diff * max (0., sim) + u_spec.rgb * pow(max(0., dot(ref, v)), u_spec.w); 
 
-        frag_col = vec4(tex.rgb, 1. - tex.r * u_sheer);
+        frag_col = vec4(light * tex.rgb, 1. - tex.r * u_sheer);
         }`;
 
         this.init = () => {
@@ -103,7 +103,8 @@
             "u_sampler",
             [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
           );
-          load_texture(0, "font.png");
+          load_texture(0, "../assets/textures/white.jpeg");
+          load_texture(1, "../assets/textures/font.png");
         };
 
         //define variables:
@@ -122,21 +123,36 @@
           //global transforms:
           m.identity()
             .scale(canvas.height / canvas.width, 1, 1)
-            .perspective(10);
+            .perspective(10)
 
-          const st = "these pixels & you";
+          //m.rotate_x(Math.atan(1 / Math.sqrt(2)));
+          //m.rotate_y(Math.PI  / 4);
+          m.rotate_y(2 * t);
+          m.rotate_x(2 * t); 
 
-          for (let i = 0; i < st.length; i++) {
-            if (st[i] === " ") continue;
+          m.scale(0.08); 
+          m.push(); 
+            m.draw(make_cube(), Material.red_plastic, 0, 0.); 
+          m.pop(); 
+          m.push(); 
+            m.move(-0.5, -0.08, 1.001)
+            m.draw(make_text("t"), Material.red_plastic, 1, 1.); 
+          m.pop(); 
 
-            let shp = make_text(st[i]);
-            m.push(); 
-              m.move(map(i, 0, st.length, -1, 1), 0, 0); 
-              m.move(0, 0, Math.sin(t)); 
-              m.scale(0.03).draw(shp, Material.red_plastic, 0, 0).draw(make_cube, Material.red_plastic, 0, 0);
-            m.pop(); 
 
-          }
+          //for (let i = 0; i < st.length; i++) {
+          //  if (st[i] === " ") continue;
+
+
+          //  m.push(); 
+          //    m.move(map(i, 0, st.length, -1, 1), 0, 0); 
+          //    m.move(0, 0, Math.sin(i + t) * 0.5); 
+          //    m.scale(0.05)
+          //    m.draw(make_cube(), Material.red_plastic, 0, 0.2);
+          //    m.move(0, 0, 0.9 + Math.cos(i + t) * 0.5)
+          //    m.draw(make_text(st[i]), Material.red_plastic, 0, 0.)
+          //  m.pop(); 
+          //}
         };
       }
 
